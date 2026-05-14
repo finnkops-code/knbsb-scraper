@@ -1,5 +1,218 @@
 {
-  "bijgewerkt": null,
+  "bijgewerkt": "2026-05-14T06:45:17Z",
   "bron": "https://stats.knbsbstats.nl/en/events/2025-lucky-day-hoofdklasse-honkbal/standings",
-  "standen": {}
+  "standen": {
+    "Reguliere competitie": [
+      {
+        "positie": "1",
+        "team": "Curaçao Neptunus",
+        "w": "37",
+        "l": "5",
+        "t": "0",
+        "pct": ".881",
+        "gb": "0"
+      },
+      {
+        "positie": "2",
+        "team": "HCAW",
+        "w": "32",
+        "l": "10",
+        "t": "0",
+        "pct": ".762",
+        "gb": "5"
+      },
+      {
+        "positie": "3",
+        "team": "Oosterhout Twins",
+        "w": "24",
+        "l": "17",
+        "t": "1",
+        "pct": ".583",
+        "gb": "12.5"
+      },
+      {
+        "positie": "4",
+        "team": "Amsterdam Pirates",
+        "w": "22",
+        "l": "20",
+        "t": "0",
+        "pct": ".524",
+        "gb": "15"
+      },
+      {
+        "positie": "5",
+        "team": "Worldwide Pharma Logistics Hoofddorp Pioniers",
+        "w": "19",
+        "l": "23",
+        "t": "0",
+        "pct": ".452",
+        "gb": "18"
+      },
+      {
+        "positie": "6",
+        "team": "Kinheim",
+        "w": "15",
+        "l": "26",
+        "t": "0",
+        "pct": ".366",
+        "gb": "21.5"
+      },
+      {
+        "positie": "7",
+        "team": "UVV",
+        "w": "11",
+        "l": "30",
+        "t": "1",
+        "pct": ".274",
+        "gb": "25.5"
+      },
+      {
+        "positie": "8",
+        "team": "RCH-Pinguïns",
+        "w": "6",
+        "l": "35",
+        "t": "0",
+        "pct": ".146",
+        "gb": "30.5"
+      }
+    ],
+    "Wildcard A": [
+      {
+        "positie": "1",
+        "team": "Oosterhout Twins",
+        "w": "2",
+        "l": "0",
+        "t": "0",
+        "pct": "1.000",
+        "gb": "0"
+      },
+      {
+        "positie": "2",
+        "team": "Kinheim",
+        "w": "0",
+        "l": "2",
+        "t": "0",
+        "pct": ".000",
+        "gb": "2"
+      }
+    ],
+    "Wildcard B": [
+      {
+        "positie": "1",
+        "team": "Amsterdam Pirates",
+        "w": "2",
+        "l": "0",
+        "t": "0",
+        "pct": "1.000",
+        "gb": "0"
+      },
+      {
+        "positie": "2",
+        "team": "Worldwide Pharma Logistics Hoofddorp Pioniers",
+        "w": "0",
+        "l": "2",
+        "t": "0",
+        "pct": ".000",
+        "gb": "2"
+      }
+    ],
+    "Playoffs A": [
+      {
+        "positie": "1",
+        "team": "Curaçao Neptunus",
+        "w": "3",
+        "l": "0",
+        "t": "0",
+        "pct": "1.000",
+        "gb": "0"
+      },
+      {
+        "positie": "2",
+        "team": "Amsterdam Pirates",
+        "w": "0",
+        "l": "3",
+        "t": "0",
+        "pct": ".000",
+        "gb": "3"
+      }
+    ],
+    "Bottom 4": [
+      {
+        "positie": "1",
+        "team": "Kinheim",
+        "w": "5",
+        "l": "4",
+        "t": "0",
+        "pct": ".556",
+        "gb": "0"
+      },
+      {
+        "positie": "2",
+        "team": "Worldwide Pharma Logistics Hoofddorp Pioniers",
+        "w": "4",
+        "l": "4",
+        "t": "1",
+        "pct": ".500",
+        "gb": "0.5"
+      },
+      {
+        "positie": "2",
+        "team": "UVV",
+        "w": "4",
+        "l": "4",
+        "t": "1",
+        "pct": ".500",
+        "gb": "0.5"
+      },
+      {
+        "positie": "4",
+        "team": "RCH-Pinguïns",
+        "w": "4",
+        "l": "5",
+        "t": "0",
+        "pct": ".444",
+        "gb": "1"
+      }
+    ],
+    "Playoffs B": [
+      {
+        "positie": "1",
+        "team": "HCAW",
+        "w": "3",
+        "l": "0",
+        "t": "0",
+        "pct": "1.000",
+        "gb": "0"
+      },
+      {
+        "positie": "2",
+        "team": "Oosterhout Twins",
+        "w": "0",
+        "l": "3",
+        "t": "0",
+        "pct": ".000",
+        "gb": "3"
+      }
+    ],
+    "Holland Series": [
+      {
+        "positie": "1",
+        "team": "Curaçao Neptunus",
+        "w": "4",
+        "l": "2",
+        "t": "0",
+        "pct": ".667",
+        "gb": "0"
+      },
+      {
+        "positie": "2",
+        "team": "HCAW",
+        "w": "2",
+        "l": "4",
+        "t": "0",
+        "pct": ".333",
+        "gb": "2"
+      }
+    ]
+  }
 }
