@@ -3,7 +3,7 @@ import re
 import urllib.request
 from datetime import datetime, timezone
 
-URL = "https://stats.knbsbstats.nl/en/events/2026-lucky-day-hoofdklasse-honkbal/standings"
+URL = "https://stats.knbsbstats.nl/en/events/2026-lucky-day-hoofdklasse/standings"
 
 def fetch_html(url):
     req = urllib.request.Request(url, headers={
