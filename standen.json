@@ -1,5 +1,5 @@
 {
-  "bijgewerkt": "2026-05-28T17:55:21Z",
+  "bijgewerkt": "2026-05-28T20:04:28Z",
   "bron": "https://stats.knbsbstats.nl/en/events/2026-lucky-day-hoofdklasse/standings",
   "standen": {
     "Reguliere Competitie": [
@@ -43,10 +43,10 @@
         "positie": "5",
         "team": "Oosterhout Twins",
         "w": "6",
-        "l": "8",
+        "l": "9",
         "t": "0",
-        "pct": ".429",
-        "gb": "8.5"
+        "pct": ".400",
+        "gb": "9"
       },
       {
         "positie": "6",
@@ -60,11 +60,11 @@
       {
         "positie": "7",
         "team": "UVV",
-        "w": "1",
+        "w": "2",
         "l": "14",
         "t": "0",
-        "pct": ".067",
-        "gb": "14"
+        "pct": ".125",
+        "gb": "13.5"
       }
     ]
   }
