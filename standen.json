@@ -1,5 +1,5 @@
 {
-  "bijgewerkt": "2026-05-30T14:23:15Z",
+  "bijgewerkt": "2026-05-30T15:58:08Z",
   "bron": "https://stats.knbsbstats.nl/en/events/2026-lucky-day-hoofdklasse/standings",
   "standen": {
     "Reguliere Competitie": [
@@ -7,19 +7,19 @@
         "positie": "1",
         "team": "Curaçao Neptunus",
         "w": "16",
-        "l": "1",
+        "l": "2",
         "t": "0",
-        "pct": ".941",
+        "pct": ".889",
         "gb": "0"
       },
       {
         "positie": "2",
         "team": "Amsterdam Pirates",
-        "w": "13",
+        "w": "14",
         "l": "4",
         "t": "0",
-        "pct": ".765",
-        "gb": "3"
+        "pct": ".778",
+        "gb": "2"
       },
       {
         "positie": "3",
@@ -28,16 +28,16 @@
         "l": "9",
         "t": "0",
         "pct": ".500",
-        "gb": "7.5"
+        "gb": "7"
       },
       {
         "positie": "4",
         "team": "Oosterhout Twins",
-        "w": "7",
+        "w": "8",
         "l": "9",
         "t": "0",
-        "pct": ".438",
-        "gb": "8.5"
+        "pct": ".471",
+        "gb": "7.5"
       },
       {
         "positie": "5",
@@ -46,7 +46,7 @@
         "l": "10",
         "t": "0",
         "pct": ".412",
-        "gb": "9"
+        "gb": "8.5"
       },
       {
         "positie": "6",
@@ -55,15 +55,15 @@
         "l": "11",
         "t": "0",
         "pct": ".313",
-        "gb": "10.5"
+        "gb": "10"
       },
       {
         "positie": "7",
         "team": "UVV",
         "w": "2",
-        "l": "15",
+        "l": "16",
         "t": "0",
-        "pct": ".118",
+        "pct": ".111",
         "gb": "14"
       }
     ]
