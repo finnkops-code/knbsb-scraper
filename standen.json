@@ -1,5 +1,5 @@
 {
-  "bijgewerkt": "2026-05-30T15:58:08Z",
+  "bijgewerkt": "2026-05-30T17:01:11Z",
   "bron": "https://stats.knbsbstats.nl/en/events/2026-lucky-day-hoofdklasse/standings",
   "standen": {
     "Reguliere Competitie": [
@@ -42,20 +42,20 @@
       {
         "positie": "5",
         "team": "HCAW",
-        "w": "7",
+        "w": "8",
         "l": "10",
         "t": "0",
-        "pct": ".412",
-        "gb": "8.5"
+        "pct": ".444",
+        "gb": "8"
       },
       {
         "positie": "6",
         "team": "Worldwide Pharma Logistics Hoofddorp Pioniers",
         "w": "5",
-        "l": "11",
+        "l": "12",
         "t": "0",
-        "pct": ".313",
-        "gb": "10"
+        "pct": ".294",
+        "gb": "10.5"
       },
       {
         "positie": "7",
