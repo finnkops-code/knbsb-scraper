@@ -5,9 +5,6 @@ from datetime import datetime, timezone
 
 RESULTS_URL = "https://stats.knbsbstats.nl/en/events/2026-lucky-day-hoofdklasse/schedule-and-results"
 
-# ── Logo URLs ─────────────────────────────────────────────────────────────────
-# Vervang de lege strings door de media URL's uit je WordPress bibliotheek
-
 TEAM_LOGOS = {
     "Curaçao Neptunus":                              "https://worldbaseballnews.org/wp-content/uploads/2025/11/neptunus.png",
     "HCAW":                                          "https://worldbaseballnews.org/wp-content/uploads/2025/11/hcaw.png",
@@ -23,17 +20,11 @@ def fetch_html(url):
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36",
         "Accept-Language": "nl-NL,nl;q=0.9",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "X-Inertia": "true",
+        "X-Requested-With": "XMLHttpRequest",
     })
     with urllib.request.urlopen(req, timeout=30) as resp:
         return resp.read().decode("utf-8")
-
-def clean(text):
-    text = re.sub(r'\s+', ' ', text).strip()
-    text = re.sub(r'^[A-Z]{2,4}\s+', '', text)
-    return text.strip()
-
-def strip_tags(html):
-    return re.sub(r'<[^>]+>', '', html).strip()
 
 def logo(team_naam):
     if team_naam in TEAM_LOGOS:
@@ -43,67 +34,55 @@ def logo(team_naam):
             return url
     return ""
 
-def parse_results(html):
+def parse_results(data):
     results = []
-    rows = re.findall(r'<tr[^>]*>(.*?)</tr>', html, re.DOTALL)
 
-    for row in rows:
-        tds_raw = re.findall(r'<td[^>]*>(.*?)</td>', row, re.DOTALL)
-        tds = [re.sub(r'\s+', ' ', strip_tags(td)).strip() for td in tds_raw]
-        tds = [t for t in tds if t]
+    # Inertia geeft JSON terug met props
+    rounds = data.get('props', {}).get('rounds', [])
+    if not rounds:
+        # Probeer andere structuur
+        rounds = data.get('rounds', [])
+    if not rounds:
+        games = data.get('props', {}).get('games', [])
+        rounds = [{'games': games}] if games else []
 
-        if len(tds) < 4:
-            continue
+    for ronde in rounds:
+        games = ronde.get('games', [])
+        for game in games:
+            # Sla geplande wedstrijden over
+            score_thuis = game.get('score_home') or game.get('run_home') or game.get('home_score')
+            score_uit   = game.get('score_away') or game.get('run_away') or game.get('away_score')
 
-        score_idx = -1
-        for j, td in enumerate(tds):
-            if re.match(r'^\d+\s*[-–]\s*\d+$', td):
-                score_idx = j
-                break
+            if score_thuis is None or score_uit is None:
+                continue
 
-        if score_idx == -1 or score_idx < 2:
-            continue
+            thuis = game.get('home_team', {}).get('name', '') or game.get('team_home', '')
+            uit   = game.get('away_team', {}).get('name', '') or game.get('team_away', '')
 
-        datum_raw = tds[0]
-        thuis = clean(tds[score_idx - 1])
-        uit   = clean(tds[score_idx + 1]) if score_idx + 1 < len(tds) else ''
-
-        if not thuis or not uit:
-            continue
-
-        score_parts = re.split(r'\s*[-–]\s*', tds[score_idx])
-        score_thuis = score_parts[0].strip() if len(score_parts) > 0 else '-'
-        score_uit   = score_parts[1].strip() if len(score_parts) > 1 else '-'
-
-        winnaar = None
-        if score_thuis.isdigit() and score_uit.isdigit():
-            if int(score_thuis) > int(score_uit):
-                winnaar = 'thuis'
-            elif int(score_uit) > int(score_thuis):
-                winnaar = 'uit'
-            else:
-                winnaar = 'gelijk'
-
-        results.append({
-            "datum":       datum_raw,
-            "thuis":       thuis,
-            "thuis_logo":  logo(thuis),
-            "score_thuis": score_thuis,
-            "score_uit":   score_uit,
-            "uit":         uit,
-            "uit_logo":    logo(uit),
-            "winnaar":     winnaar,
-        })
+            results.append({
+                "datum":       game.get('date', '') or game.get('game_date', ''),
+                "thuis":       thuis,
+                "thuis_logo":  logo(thuis),
+                "score_thuis": str(score_thuis),
+                "score_uit":   str(score_uit),
+                "uit":         uit,
+                "uit_logo":    logo(uit),
+                "winnaar":     'thuis' if int(score_thuis) > int(score_uit) else 'uit' if int(score_uit) > int(score_thuis) else 'gelijk',
+            })
 
     results.reverse()
     return results[:20]
 
 def main():
     print(f"Uitslagen ophalen van {RESULTS_URL}...")
-    html = fetch_html(RESULTS_URL)
-    print(f"Ontvangen: {len(html)} bytes")
+    raw = fetch_html(RESULTS_URL)
+    print(f"Ontvangen: {len(raw)} bytes")
 
-    uitslagen = parse_results(html)
+    # Probeer Inertia JSON te parsen
+    data = json.loads(raw)
+    print(f"Inertia data geladen, keys: {list(data.keys())}")
+
+    uitslagen = parse_results(data)
     print(f"Wedstrijden gevonden: {len(uitslagen)}")
 
     for u in uitslagen[:5]:
