@@ -20,8 +20,6 @@ def fetch_html(url):
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36",
         "Accept-Language": "nl-NL,nl;q=0.9",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "X-Inertia": "true",
-        "X-Requested-With": "XMLHttpRequest",
     })
     with urllib.request.urlopen(req, timeout=30) as resp:
         return resp.read().decode("utf-8")
@@ -34,40 +32,79 @@ def logo(team_naam):
             return url
     return ""
 
+def extract_inertia_data(html):
+    # Inertia stopt alle data in data-page attribuut van de app div
+    match = re.search(r'<div[^>]+id=["\']app["\'][^>]+data-page=["\']([^"\']+)["\']', html)
+    if not match:
+        # Probeer alternatief patroon
+        match = re.search(r'data-page="([^"]+)"', html)
+    if not match:
+        match = re.search(r"data-page='([^']+)'", html)
+    if not match:
+        print("❌ Geen Inertia data gevonden in HTML")
+        print("HTML snippet:", html[:500])
+        return None
+    raw = match.group(1)
+    # HTML entities decoderen
+    raw = raw.replace('&quot;', '"').replace('&#039;', "'").replace('&amp;', '&')
+    return json.loads(raw)
+
 def parse_results(data):
     results = []
 
-    # Inertia geeft JSON terug met props
-    rounds = data.get('props', {}).get('rounds', [])
+    props = data.get('props', {})
+    print(f"Props keys: {list(props.keys())}")
+
+    # Zoek naar rounds of games in props
+    rounds = props.get('rounds', props.get('schedule', props.get('games', [])))
+
+    if isinstance(rounds, dict):
+        rounds = list(rounds.values())
+
     if not rounds:
-        # Probeer andere structuur
-        rounds = data.get('rounds', [])
-    if not rounds:
-        games = data.get('props', {}).get('games', [])
-        rounds = [{'games': games}] if games else []
+        print("❌ Geen rounds/games gevonden in props")
+        return results
 
     for ronde in rounds:
-        games = ronde.get('games', [])
+        if isinstance(ronde, dict):
+            games = ronde.get('games', [ronde] if ronde.get('home_team') else [])
+        else:
+            games = []
+
         for game in games:
-            # Sla geplande wedstrijden over
-            score_thuis = game.get('score_home') or game.get('run_home') or game.get('home_score')
-            score_uit   = game.get('score_away') or game.get('run_away') or game.get('away_score')
+            score_thuis = game.get('score_home') or game.get('run_home') or game.get('home_score') or game.get('home_runs')
+            score_uit   = game.get('score_away') or game.get('run_away') or game.get('away_score') or game.get('away_runs')
 
             if score_thuis is None or score_uit is None:
                 continue
 
-            thuis = game.get('home_team', {}).get('name', '') or game.get('team_home', '')
-            uit   = game.get('away_team', {}).get('name', '') or game.get('team_away', '')
+            thuis = ''
+            uit   = ''
+            home  = game.get('home_team', {})
+            away  = game.get('away_team', {})
+            if isinstance(home, dict):
+                thuis = home.get('name', home.get('short_name', ''))
+            else:
+                thuis = str(home)
+            if isinstance(away, dict):
+                uit = away.get('name', away.get('short_name', ''))
+            else:
+                uit = str(away)
+
+            try:
+                winnaar = 'thuis' if int(score_thuis) > int(score_uit) else 'uit' if int(score_uit) > int(score_thuis) else 'gelijk'
+            except:
+                winnaar = None
 
             results.append({
-                "datum":       game.get('date', '') or game.get('game_date', ''),
+                "datum":       game.get('date', game.get('game_date', game.get('scheduled', ''))),
                 "thuis":       thuis,
                 "thuis_logo":  logo(thuis),
                 "score_thuis": str(score_thuis),
                 "score_uit":   str(score_uit),
                 "uit":         uit,
                 "uit_logo":    logo(uit),
-                "winnaar":     'thuis' if int(score_thuis) > int(score_uit) else 'uit' if int(score_uit) > int(score_thuis) else 'gelijk',
+                "winnaar":     winnaar,
             })
 
     results.reverse()
@@ -75,13 +112,15 @@ def parse_results(data):
 
 def main():
     print(f"Uitslagen ophalen van {RESULTS_URL}...")
-    raw = fetch_html(RESULTS_URL)
-    print(f"Ontvangen: {len(raw)} bytes")
+    html = fetch_html(RESULTS_URL)
+    print(f"Ontvangen: {len(html)} bytes")
 
-    # Probeer Inertia JSON te parsen
-    data = json.loads(raw)
-    print(f"Inertia data geladen, keys: {list(data.keys())}")
+    data = extract_inertia_data(html)
+    if not data:
+        print("❌ Kon geen data extraheren")
+        return
 
+    print(f"Data keys: {list(data.keys())}")
     uitslagen = parse_results(data)
     print(f"Wedstrijden gevonden: {len(uitslagen)}")
 
