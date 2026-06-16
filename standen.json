@@ -1,5 +1,5 @@
 {
-  "bijgewerkt": "2026-06-16T17:53:08Z",
+  "bijgewerkt": "2026-06-16T20:35:29Z",
   "bron": "https://stats.knbsbstats.nl/en/events/2026-lucky-day-hoofdklasse/standings",
   "standen": {
     "Reguliere Competitie": [
@@ -42,20 +42,20 @@
       {
         "positie": "5",
         "team": "Oosterhout Twins",
-        "w": "8",
+        "w": "9",
         "l": "14",
         "t": "0",
-        "pct": ".364",
-        "gb": "12.5"
+        "pct": ".391",
+        "gb": "12"
       },
       {
         "positie": "6",
         "team": "Worldwide Pharma Logistics Hoofddorp Pioniers",
         "w": "5",
-        "l": "14",
+        "l": "15",
         "t": "0",
-        "pct": ".263",
-        "gb": "14"
+        "pct": ".250",
+        "gb": "14.5"
       },
       {
         "positie": "7",
