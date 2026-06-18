@@ -1,61 +1,61 @@
 {
-  "bijgewerkt": "2026-06-18T20:08:33Z",
+  "bijgewerkt": "2026-06-18T22:50:40Z",
   "bron": "https://stats.knbsbstats.nl/en/events/2026-lucky-day-hoofdklasse/standings",
   "standen": {
     "Reguliere Competitie": [
       {
         "positie": "1",
         "team": "Curaçao Neptunus",
-        "w": "22",
+        "w": "23",
         "l": "2",
         "t": "0",
-        "pct": ".917",
+        "pct": ".920",
         "gb": "0"
       },
       {
         "positie": "2",
         "team": "Amsterdam Pirates",
-        "w": "17",
+        "w": "18",
         "l": "4",
         "t": "0",
-        "pct": ".810",
+        "pct": ".818",
         "gb": "3.5"
       },
       {
         "positie": "3",
         "team": "Kinheim",
-        "w": "11",
+        "w": "12",
         "l": "12",
         "t": "0",
-        "pct": ".478",
+        "pct": ".500",
         "gb": "10.5"
       },
       {
         "positie": "4",
         "team": "HCAW",
         "w": "11",
-        "l": "13",
+        "l": "14",
         "t": "0",
-        "pct": ".458",
-        "gb": "11"
+        "pct": ".440",
+        "gb": "12"
       },
       {
         "positie": "5",
         "team": "Oosterhout Twins",
         "w": "9",
-        "l": "14",
+        "l": "15",
         "t": "0",
-        "pct": ".391",
-        "gb": "12.5"
+        "pct": ".375",
+        "gb": "13.5"
       },
       {
         "positie": "6",
         "team": "Worldwide Pharma Logistics Hoofddorp Pioniers",
         "w": "5",
-        "l": "15",
+        "l": "16",
         "t": "0",
-        "pct": ".250",
-        "gb": "15"
+        "pct": ".238",
+        "gb": "16"
       },
       {
         "positie": "7",
@@ -64,7 +64,7 @@
         "l": "19",
         "t": "0",
         "pct": ".174",
-        "gb": "17.5"
+        "gb": "18"
       }
     ]
   }
