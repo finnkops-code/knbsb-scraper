@@ -1,5 +1,5 @@
 {
-  "bijgewerkt": "2026-07-11T16:41:10Z",
+  "bijgewerkt": "2026-07-11T18:42:43Z",
   "bron": "https://stats.knbsbstats.nl/en/events/2026-lucky-day-hoofdklasse/standings",
   "standen": {
     "Reguliere Competitie": [
@@ -15,11 +15,11 @@
       {
         "positie": "2",
         "team": "Amsterdam Pirates",
-        "w": "21",
+        "w": "22",
         "l": "4",
         "t": "0",
-        "pct": ".840",
-        "gb": "4"
+        "pct": ".846",
+        "gb": "3.5"
       },
       {
         "positie": "3",
@@ -34,10 +34,10 @@
         "positie": "4",
         "team": "HCAW",
         "w": "12",
-        "l": "16",
+        "l": "17",
         "t": "0",
-        "pct": ".429",
-        "gb": "14.5"
+        "pct": ".414",
+        "gb": "15"
       },
       {
         "positie": "5",
