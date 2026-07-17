@@ -155,6 +155,15 @@ def haal_via_playwright() -> str:
                 if status and status >= 400:
                     fragment = page.content()[:300].replace("\n", " ")
                     print(f"  ⚠ Pagina gaf status {status}. Fragment: {fragment}", file=sys.stderr)
+                    browser.close()
+                    # Een 4xx/5xx (bv. CloudFront/WAF-blokkade) is GEEN geldige
+                    # pagina — eerder werd dit ten onrechte als succes gezien,
+                    # waardoor de foutpagina zelf als "HTML" werd doorgegeven
+                    # en de parser stil leeg terugkwam. Nu telt dit als een
+                    # mislukte poging, zodat er echt geretryed wordt en de
+                    # scraper uiteindelijk expliciet faalt i.p.v. stilletjes
+                    # een lege standen.json op te leveren.
+                    raise RuntimeError(f"Pagina gaf status {status} (mogelijk IP/WAF-blokkade)")
                 page.wait_for_timeout(6_000)
                 html = page.content()
                 browser.close()
@@ -355,6 +364,16 @@ def main():
     print(f"Ontvangen: {len(html)} bytes")
     standen = parse_standings(html)
     print(f"Gevonden fases: {list(standen.keys())}")
+
+    if not standen:
+        # Geen enkele fase gevonden = zeer waarschijnlijk een mislukte fetch
+        # (blokkade, layout-wijziging, etc.), geen "0 wedstrijden gespeeld".
+        # Bestaande standen.json NIET overschrijven met lege data, en de run
+        # laten falen zodat dit zichtbaar is in Actions i.p.v. stil verlies
+        # van data op de site.
+        print("❌ Geen standen gevonden — bestaande standen.json wordt NIET overschreven.", file=sys.stderr)
+        sys.exit(1)
+
     output = {
         "bijgewerkt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "bron":       URL,
