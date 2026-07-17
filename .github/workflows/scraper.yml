@@ -1,36 +1,46 @@
-name: KNBSB Standen Scraper
-
+name: KNBSB / Hoofdklasse Standen Scraper
 on:
   schedule:
-    - cron: '0 * * * *'
-  workflow_dispatch:
-
+    # Elk uur
+    - cron: "0 * * * *"
+  workflow_dispatch: {}   # handmatig starten via de Actions-tab
 permissions:
   contents: write
-
+concurrency:
+  group: update-knbsb-hoofdklasse
+  cancel-in-progress: false
 jobs:
   scrape:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 15
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
-
-      - name: Python instellen
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-
-      - name: Standen scrapen
-        run: python scraper.py
-
-      - name: Uitslagen scrapen
-        run: python scraper_uitslagen.py
-
-      - name: JSON bestanden committen
+          python-version: "3.12"
+      - name: Installeer dependencies
         run: |
-          git config user.name  "github-actions[bot]"
+          pip install requests playwright
+          playwright install --with-deps chromium
+      - name: Standen scrapen
+        env:
+          # Optioneel: voeg een repo-secret PROXY_URL toe (Settings → Secrets
+          # and variables → Actions) met bv. http://user:pass@proxy-host:poort
+          # van een residential-proxy-dienst, voor het geval stats.knbsbstats.nl
+          # ook GitHub-runner-IP's blokkeert. Zonder deze secret verandert er
+          # niets aan het gedrag.
+          PROXY_URL: ${{ secrets.PROXY_URL }}
+        run: python scraper.py
+      - name: Commit & push
+        run: |
+          git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add standen.json uitslagen.json
-          git diff --staged --quiet || git commit -m "Standen & uitslagen bijgewerkt: $(date -u '+%Y-%m-%d %H:%M UTC')"
-          git push
+          git add standen.json
+          if git diff --cached --quiet; then
+            echo "Geen wijzigingen in standen.json."
+          else
+            git commit -m "Update KNBSB Hoofdklasse standen ($(date -u +'%Y-%m-%d %H:%M UTC'))"
+            git push
+          fi
