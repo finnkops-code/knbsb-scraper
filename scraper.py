@@ -296,62 +296,58 @@ def parse_standen_uit_next_data(data):
 
 
 # ---------------------------------------------------------------------------
-# Strategie B: HTML-fallback via de /rosters/<slug>-links per rij
+# Strategie B: platgeslagen-tekst-fallback (onafhankelijk van de exacte
+# HTML/DOM-structuur — tabel, kaarten, divs, maakt niet uit)
 # ---------------------------------------------------------------------------
-ROW_RE = re.compile(r'<a\s[^>]*href="(/rosters/[^"?#]+)"[^>]*>(.*?)</a>', re.DOTALL)
-GB_OF_LEADER_RE = re.compile(r'(Leader|[+-]?\d+(?:\.\d+)?\s*GB)', re.IGNORECASE)
-ROW_TAIL_RE = re.compile(r'(\d+)\s+(\d+)\s+(\d*\.\d+)\s*([WLT]{1,10})?\s*$')
+# Bekende, canonieke teamnamen. Rijen worden herkend doordat één van deze
+# namen letterlijk in het tekstfragment van de rij voorkomt — dit werkt
+# ongeacht of de pagina een <table>, een lijst <div>'s, of iets anders
+# gebruikt om de standen weer te geven, en is dus veel minder gevoelig voor
+# toekomstige layout-wijzigingen dan matchen op specifieke tags/attributen.
+KNOWN_TEAMS = list(dict.fromkeys(SLUG_TEAM_NAMES.values()))
+
+ROW_TEXT_RE = re.compile(
+    r'([1-9])\s+(.{2,80}?)\s*(Leader|[+-]?\d+(?:\.\d+)?\s*GB)\s+(\d+)\s+(\d+)\s+(\d*\.\d+)\s*([WLT]{1,10})?',
+    re.IGNORECASE,
+)
 
 
-def _tekst_zonder_tags(html_fragment: str) -> str:
-    tekst = re.sub(r'<[^>]+>', ' ', html_fragment)
-    tekst = tekst.replace('&nbsp;', ' ').replace('&amp;', '&').replace('&#039;', "'").replace('&quot;', '"')
+def _plat_document(html: str) -> str:
+    """Geeft de volledige pagina terug als platte tekst (alle tags/scripts
+    weg), zodat we op zichtbare inhoud kunnen matchen i.p.v. op opmaak."""
+    tekst = re.sub(r'<(script|style)[^>]*>.*?</\1>', ' ', html, flags=re.DOTALL | re.IGNORECASE)
+    tekst = re.sub(r'<[^>]+>', ' ', tekst)
+    tekst = (
+        tekst.replace('&nbsp;', ' ')
+             .replace('&amp;', '&')
+             .replace('&#039;', "'")
+             .replace('&quot;', '"')
+    )
     return re.sub(r'\s+', ' ', tekst).strip()
 
 
-def parse_standen_uit_tabellen(html):
+def parse_standen_uit_tekst(html):
+    tekst = _plat_document(html)
     fase_rijen = []
-    for match in ROW_RE.finditer(html):
-        href, inner_html = match.group(1), match.group(2)
-        slug = href.strip("/").split("/")[-1]
-        tekst = _tekst_zonder_tags(inner_html)
-        if not tekst:
-            continue
+    gebruikte_teams = set()
 
-        pos_match = re.match(r'^(\d+)\s*(.*)$', tekst)
-        if not pos_match:
-            continue
-        positie, rest = pos_match.group(1), pos_match.group(2)
+    for m in ROW_TEXT_RE.finditer(tekst):
+        _pos_ruw, naam_blob, gb_marker, w, l, pct, streak = m.groups()
 
-        gb_match = GB_OF_LEADER_RE.search(rest)
-        if not gb_match:
-            continue
-        naam_blob = rest[:gb_match.start()].strip()
-        staart = rest[gb_match.end():].strip()
-
-        staart_match = ROW_TAIL_RE.search(staart)
-        if not staart_match:
-            continue
-        w, l, pct, streak = staart_match.groups()
-
-        team_naam = SLUG_TEAM_NAMES.get(slug)
+        team_naam = None
+        for kandidaat in KNOWN_TEAMS:
+            if kandidaat not in gebruikte_teams and kandidaat.lower() in naam_blob.lower():
+                team_naam = kandidaat
+                break
         if not team_naam:
-            # Teamnaam staat dubbel in de tekst (responsive layout) —
-            # probeer de herhaling eruit te halen, anders de ruwe blob.
-            genormaliseerd = ' '.join(naam_blob.split())
-            n = len(genormaliseerd)
-            if n % 2 == 0 and genormaliseerd[:n // 2] == genormaliseerd[n // 2:]:
-                team_naam = genormaliseerd[:n // 2]
-            elif n % 2 == 1 and ' ' in genormaliseerd and genormaliseerd[:n // 2] == genormaliseerd[n // 2 + 1:]:
-                team_naam = genormaliseerd[:n // 2]
-            else:
-                team_naam = genormaliseerd or slug.title()
+            # Geen bekend team herkend in dit fragment -> vals-positief
+            # (bv. toevallig een ander stukje tekst met cijfers), overslaan.
+            continue
+        gebruikte_teams.add(team_naam)
 
-        gb_marker = gb_match.group(1)
         gb_waarde = "0" if gb_marker.lower() == "leader" else re.sub(r'[^0-9.]', '', gb_marker)
-
         fase_rijen.append({
-            "positie": positie,
+            "positie": str(len(fase_rijen) + 1),
             "team":    team_naam,
             "logo":    logo(team_naam),
             "w":       w,
@@ -361,6 +357,9 @@ def parse_standen_uit_tabellen(html):
             "gb":      gb_waarde,
             "streak":  streak or "-",
         })
+        if len(gebruikte_teams) >= len(KNOWN_TEAMS):
+            break
+
     return {"Standen": fase_rijen} if fase_rijen else {}
 
 
@@ -370,10 +369,10 @@ def parse_standings(html):
         standen = parse_standen_uit_next_data(data)
         if standen:
             return standen
-        print("  ⚠ __NEXT_DATA__ gevonden maar geen bruikbare standen — probeer HTML-fallback.", flush=True)
+        print("  ⚠ __NEXT_DATA__ gevonden maar geen bruikbare standen — probeer tekst-fallback.", flush=True)
     else:
-        print("  ⚠ Geen __NEXT_DATA__ gevonden — probeer HTML-fallback.", flush=True)
-    return parse_standen_uit_tabellen(html)
+        print("  ⚠ Geen __NEXT_DATA__ gevonden — probeer tekst-fallback.", flush=True)
+    return parse_standen_uit_tekst(html)
 
 
 def print_diagnose(html):
