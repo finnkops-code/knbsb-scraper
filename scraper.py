@@ -1,31 +1,34 @@
 #!/usr/bin/env python3
 """
-KNBSB Hoofdklasse (Lucky Day) – Standen scraper
-================================================
+Honkbal Hoofdklasse – Standen scraper
+======================================
 Haalt de standen op van:
-    https://stats.knbsbstats.nl/en/events/2026-lucky-day-hoofdklasse/standings
+    https://honkbalhoofdklasse.com/stand
 en schrijft ze weg als standen.json.
 
-BELANGRIJKE WIJZIGING t.o.v. de vorige versie
-----------------------------------------------
-De site draait op Inertia.js (dit blijkt uit de uitslagen-scraper: die site
-zet alle data in een `data-page="{...JSON...}"`-attribuut op de root-<div>,
-in plaats van losse <table>-markup in de HTML). Nu de 403-blokkade is
-opgelost (via `requests` + browser-headers, met Playwright-stealth als
-fallback), kwam de ruwe HTML wel binnen — maar de oude regex-parser
-(<h3>/<table>/<tr>/<td>) vond niks meer, omdat de standen ook via die
-Inertia data-page JSON worden aangeleverd i.p.v. als kant-en-klare tabellen.
+NIEUWE BRON (i.p.v. stats.knbsbstats.nl)
+-----------------------------------------
+honkbalhoofdklasse.com draait op Next.js. De standen-pagina is
+server-rendered: een gewone GET met browser-headers levert de volledige,
+al-gerenderde HTML op (getest en bevestigd — geen 403/WAF-blokkade zoals bij
+de oude bron). Er zijn daarom twee parse-strategieën, in volgorde geprobeerd:
 
-Deze versie probeert daarom EERST de Inertia-JSON te lezen (zelfde aanpak
-als de uitslagen-scraper), en valt pas terug op de oude tabel-regex als er
-geen data-page gevonden wordt (voor het geval deze pagina toch anders is
-opgebouwd dan de uitslagen-pagina).
+  1. __NEXT_DATA__-JSON: Next.js zet de hydration-props standaard in
+     <script id="__NEXT_DATA__" type="application/json">{...}</script>.
+     Als de standen-array daarin te vinden is, is dat de betrouwbaarste bron
+     (geen tekst-parsing nodig). De exacte prop-namen zijn niet vooraf
+     bekend, dus dit wordt recursief gezocht op basis van herkenbare
+     sleutels (wins/losses/w/l/pct/team). Bij twijfel print het script de
+     kandidaten naar de Actions-log.
+  2. HTML-fallback: elke rij op de standen-pagina is een <a href="/rosters/
+     <slug>">...</a> die de hele rij omvat (positie, team, GB/Leader, W, L,
+     PCT, streak). De team-slug in de URL (bv. "neptunus", "pirates") is een
+     betrouwbaarder team-ID dan de zichtbare tekst (die de teamnaam dubbel
+     bevat i.v.m. responsive layout), dus de slug wordt als primaire
+     team-sleutel gebruikt.
 
-Omdat de exacte prop-namen voor de standen (bv. "standings", "table",
-"groups", "phases", ...) niet vooraf bekend zijn, print het script bij de
-eerste run de beschikbare props-keys + structuur naar de Actions-log. Komt
-er (nog) niks bruikbaars uit? Stuur die logregels door, dan stem ik de
-key-namen exact af.
+Playwright blijft als laatste redmiddel staan voor het geval de site ooit
+alsnog client-side rendering of een bot-blokkade introduceert.
 """
 import json
 import re
@@ -44,7 +47,7 @@ REQUEST_PROXIES = {"http": PROXY_URL, "https": PROXY_URL} if PROXY_URL else None
 # ---------------------------------------------------------------------------
 # Configuratie
 # ---------------------------------------------------------------------------
-URL = "https://stats.knbsbstats.nl/en/events/2026-lucky-day-hoofdklasse/standings"
+URL = "https://honkbalhoofdklasse.com/stand"
 TIMEOUT = 30
 BROWSER_HEADERS = {
     "User-Agent": (
@@ -70,16 +73,25 @@ if (origQuery) {
 """
 
 # ---------------------------------------------------------------------------
-# Team-logo's (zelfde lijst als de uitslagen-scraper, voor consistentie)
+# Team-mapping: URL-slug (/rosters/<slug>) -> canonieke teamnaam + logo
 # ---------------------------------------------------------------------------
+SLUG_TEAM_NAMES = {
+    "neptunus": "Curaçao Neptunus",
+    "pirates":  "Amsterdam Pirates",
+    "kinheim":  "Kinheim",
+    "hcaw":     "HCAW",
+    "twins":    "Oosterhout Twins",
+    "pioniers": "Hoofddorp Pioniers",
+    "uvv":      "UVV",
+}
 TEAM_LOGOS = {
-    "Curaçao Neptunus":                              "https://worldbaseballnews.org/wp-content/uploads/2025/11/neptunus.png",
-    "HCAW":                                          "https://worldbaseballnews.org/wp-content/uploads/2025/11/hcaw.png",
-    "Amsterdam Pirates":                             "https://worldbaseballnews.org/wp-content/uploads/2025/11/amsterdam-pirates.png",
-    "Kinheim":                                       "https://worldbaseballnews.org/wp-content/uploads/2025/11/kinheim.png",
-    "Oosterhout Twins":                              "https://worldbaseballnews.org/wp-content/uploads/2025/11/twins-1.png",
-    "Worldwide Pharma Logistics Hoofddorp Pioniers": "https://worldbaseballnews.org/wp-content/uploads/2025/11/pioniers.png",
-    "UVV":                                           "https://worldbaseballnews.org/wp-content/uploads/2025/11/uvv.png",
+    "Curaçao Neptunus":  "https://worldbaseballnews.org/wp-content/uploads/2025/11/neptunus.png",
+    "HCAW":              "https://worldbaseballnews.org/wp-content/uploads/2025/11/hcaw.png",
+    "Amsterdam Pirates":  "https://worldbaseballnews.org/wp-content/uploads/2025/11/amsterdam-pirates.png",
+    "Kinheim":            "https://worldbaseballnews.org/wp-content/uploads/2025/11/kinheim.png",
+    "Oosterhout Twins":   "https://worldbaseballnews.org/wp-content/uploads/2025/11/twins-1.png",
+    "Hoofddorp Pioniers": "https://worldbaseballnews.org/wp-content/uploads/2025/11/pioniers.png",
+    "UVV":                "https://worldbaseballnews.org/wp-content/uploads/2025/11/uvv.png",
 }
 
 
@@ -102,7 +114,7 @@ def haal_via_requests() -> str:
 
 
 # ---------------------------------------------------------------------------
-# Strategie 2: Playwright-fallback
+# Strategie 2: Playwright-fallback (redmiddel als de site ooit CSR/WAF krijgt)
 # ---------------------------------------------------------------------------
 def _playwright_proxy_config():
     if not PROXY_URL:
@@ -118,11 +130,6 @@ def _playwright_proxy_config():
 
 
 def haal_via_playwright() -> str:
-    """
-    Laadt de standen-pagina in headless Chromium en geeft de volledige HTML
-    terug (na JS-uitvoering). Probeert het tot 2 keer met een verse
-    browser-context, met stealth-maatregelen tegen headless-detectie.
-    """
     from playwright.sync_api import sync_playwright
     max_pogingen = 2
     laatste_fout = None
@@ -156,15 +163,8 @@ def haal_via_playwright() -> str:
                     fragment = page.content()[:300].replace("\n", " ")
                     print(f"  ⚠ Pagina gaf status {status}. Fragment: {fragment}", file=sys.stderr)
                     browser.close()
-                    # Een 4xx/5xx (bv. CloudFront/WAF-blokkade) is GEEN geldige
-                    # pagina — eerder werd dit ten onrechte als succes gezien,
-                    # waardoor de foutpagina zelf als "HTML" werd doorgegeven
-                    # en de parser stil leeg terugkwam. Nu telt dit als een
-                    # mislukte poging, zodat er echt geretryed wordt en de
-                    # scraper uiteindelijk expliciet faalt i.p.v. stilletjes
-                    # een lege standen.json op te leveren.
                     raise RuntimeError(f"Pagina gaf status {status} (mogelijk IP/WAF-blokkade)")
-                page.wait_for_timeout(6_000)
+                page.wait_for_timeout(4_000)
                 html = page.content()
                 browser.close()
                 return html
@@ -192,169 +192,187 @@ def fetch_html() -> str:
 
 
 # ---------------------------------------------------------------------------
-# Inertia-parsing (nieuw — zelfde aanpak als de uitslagen-scraper)
+# Strategie A: __NEXT_DATA__-JSON uitlezen (primair)
 # ---------------------------------------------------------------------------
-def extract_inertia_data(html):
-    match = re.search(r'<div[^>]+id=["\']app["\'][^>]+data-page=["\']([^"\']+)["\']', html)
-    if not match:
-        match = re.search(r'data-page="([^"]+)"', html)
-    if not match:
-        match = re.search(r"data-page='([^']+)'", html)
+def extract_next_data(html):
+    match = re.search(
+        r'<script[^>]+id=["\']__NEXT_DATA__["\'][^>]*>(.*?)</script>',
+        html, re.DOTALL,
+    )
     if not match:
         return None
-    raw = match.group(1)
-    raw = raw.replace('&quot;', '"').replace('&#039;', "'").replace('&amp;', '&')
     try:
-        return json.loads(raw)
+        return json.loads(match.group(1))
     except json.JSONDecodeError:
         return None
 
 
-def _get_pos(rij, *sleutels, default='-'):
+def _looks_like_standings_rows(items):
+    if not items or not all(isinstance(it, dict) for it in items):
+        return False
+    keys = set()
+    for it in items:
+        keys |= {k.lower() for k in it.keys()}
+    heeft_wl = any(k in keys for k in ("wins", "win", "w")) and any(
+        k in keys for k in ("losses", "loss", "l")
+    )
+    heeft_team = any("team" in k or "slug" in k or "club" in k for k in keys)
+    return heeft_wl and heeft_team
+
+
+def find_standings_lists(obj, depth=0, max_depth=10, gevonden=None):
+    if gevonden is None:
+        gevonden = []
+    if depth > max_depth:
+        return gevonden
+    if isinstance(obj, list):
+        if _looks_like_standings_rows(obj):
+            gevonden.append(obj)
+        for item in obj:
+            find_standings_lists(item, depth + 1, max_depth, gevonden)
+    elif isinstance(obj, dict):
+        for v in obj.values():
+            find_standings_lists(v, depth + 1, max_depth, gevonden)
+    return gevonden
+
+
+def _get(rij, *sleutels, default="-"):
+    laag = {k.lower(): v for k, v in rij.items()}
     for s in sleutels:
-        if s in rij and rij[s] not in (None, ''):
-            return rij[s]
+        if s in laag and laag[s] not in (None, ""):
+            return laag[s]
     return default
 
 
-def parse_standen_uit_inertia(data):
-    """
-    Zoekt de standen in de Inertia-props. De exacte structuur is niet vooraf
-    bekend (elke pagina/component kan andere prop-namen gebruiken), dus dit
-    probeert een aantal voor de hand liggende sleutels en print de gevonden
-    props-keys naar de log zodat we dit kunnen verfijnen als het niet meteen
-    goed staat.
-    """
-    props = data.get('props', {})
-    print(f"  Props keys (standen-pagina): {list(props.keys())}", flush=True)
+def _slug_uit(rij):
+    for veld in ("slug", "teamSlug", "team_slug"):
+        for k, v in rij.items():
+            if k.lower() == veld.lower() and isinstance(v, str):
+                return v.strip("/").split("/")[-1]
+    team = rij.get("team")
+    if isinstance(team, dict):
+        for veld in ("slug", "id"):
+            if isinstance(team.get(veld), str):
+                return team[veld].strip("/").split("/")[-1]
+    return None
 
-    kandidaten = ['standings', 'standing', 'table', 'tables', 'groups', 'phases', 'divisions', 'ranking', 'rankings']
-    bron = None
-    gekozen_key = None
-    for key in kandidaten:
-        if key in props and props[key]:
-            bron = props[key]
-            gekozen_key = key
-            break
-    if bron is None:
-        print("  ❌ Geen bekende standen-sleutel gevonden in props.", flush=True)
+
+def parse_standen_uit_next_data(data):
+    kandidaten = find_standings_lists(data)
+    if not kandidaten:
+        print("  ❌ Geen standen-achtige lijst gevonden in __NEXT_DATA__.", flush=True)
         return {}
+    kandidaten.sort(key=len, reverse=True)
+    for i, kandidaat in enumerate(kandidaten[:5]):
+        voorbeeld_keys = list(kandidaat[0].keys()) if kandidaat else []
+        print(f"  Kandidaat {i}: {len(kandidaat)} rijen, keys: {voorbeeld_keys}", flush=True)
+    rijen_bron = kandidaten[0]
+    print(f"  → gebruik kandidaat met {len(rijen_bron)} rijen", flush=True)
 
-    print(f"  → gebruik props['{gekozen_key}']", flush=True)
-
-    result = {}
-    # Structuur kan zijn: { "Regular Season": [ {...rij...}, ... ], ... }
-    # of: [ { "name": "...", "teams": [ {...}, ... ] }, ... ]
-    if isinstance(bron, dict):
-        fasen = bron.items()
-    elif isinstance(bron, list):
-        fasen = []
-        for fase in bron:
-            if isinstance(fase, dict):
-                naam = fase.get('name') or fase.get('title') or fase.get('phase') or 'Standen'
-                rijen = fase.get('teams') or fase.get('rows') or fase.get('standings') or fase.get('data') or []
-                fasen.append((naam, rijen))
-            elif isinstance(fase, list):
-                fasen.append(('Standen', fase))
-        fasen = tuple(fasen)
-    else:
-        fasen = ()
-
-    for fase_naam, rijen in fasen:
-        if not isinstance(rijen, list):
-            continue
-        fase_rijen = []
-        for i, rij in enumerate(rijen, start=1):
-            if not isinstance(rij, dict):
-                continue
-            team = rij.get('team')
+    fase_rijen = []
+    for i, rij in enumerate(rijen_bron, start=1):
+        slug = _slug_uit(rij)
+        if slug and slug in SLUG_TEAM_NAMES:
+            team_naam = SLUG_TEAM_NAMES[slug]
+        else:
+            team = rij.get("team")
             if isinstance(team, dict):
-                team_naam = team.get('name') or team.get('short_name') or ''
+                team_naam = team.get("name") or team.get("naam") or ""
             else:
-                team_naam = rij.get('team_name') or rij.get('name') or str(team or '')
-            fase_rijen.append({
-                "positie": str(_get_pos(rij, 'position', 'rank', 'pos', default=str(i))),
-                "team":    team_naam,
-                "logo":    logo(team_naam),
-                "w":       str(_get_pos(rij, 'wins', 'w', 'won')),
-                "l":       str(_get_pos(rij, 'losses', 'l', 'lost')),
-                "t":       str(_get_pos(rij, 'ties', 't', 'draws')),
-                "pct":     str(_get_pos(rij, 'pct', 'win_pct', 'percentage')),
-                "gb":      str(_get_pos(rij, 'gb', 'games_behind')),
-            })
-        if fase_rijen:
-            result[fase_naam] = fase_rijen
-    return result
+                team_naam = str(_get(rij, "team", "teamname", "name", default=""))
+        gb_raw = str(_get(rij, "gb", "games_behind", "gamesbehind", default="0"))
+        fase_rijen.append({
+            "positie": str(_get(rij, "position", "rank", "pos", default=str(i))),
+            "team":    team_naam,
+            "logo":    logo(team_naam),
+            "w":       str(_get(rij, "wins", "win", "w")),
+            "l":       str(_get(rij, "losses", "loss", "l")),
+            "t":       str(_get(rij, "ties", "draws", "t", default="-")),
+            "pct":     str(_get(rij, "pct", "win_pct", "percentage", "winpercentage")),
+            "gb":      gb_raw,
+            "streak":  str(_get(rij, "streak", "last5", "last_five", default="-")),
+        })
+    return {"Standen": fase_rijen} if fase_rijen else {}
 
 
 # ---------------------------------------------------------------------------
-# Fallback: oude tabel-regex-parsing (voor het geval de pagina toch
-# server-rendered HTML-tabellen bevat i.p.v. Inertia-props)
+# Strategie B: HTML-fallback via de /rosters/<slug>-links per rij
 # ---------------------------------------------------------------------------
-def clean(text):
-    text = re.sub(r'\s+', ' ', text).strip()
-    text = re.sub(r'^[A-Z]{2,4}\s+', '', text)
-    return text.strip()
+ROW_RE = re.compile(r'<a\s[^>]*href="(/rosters/[^"?#]+)"[^>]*>(.*?)</a>', re.DOTALL)
+GB_OF_LEADER_RE = re.compile(r'(Leader|[+-]?\d+(?:\.\d+)?\s*GB)', re.IGNORECASE)
+ROW_TAIL_RE = re.compile(r'(\d+)\s+(\d+)\s+(\d*\.\d+)\s*([WLT]{1,10})?\s*$')
+
+
+def _tekst_zonder_tags(html_fragment: str) -> str:
+    tekst = re.sub(r'<[^>]+>', ' ', html_fragment)
+    tekst = tekst.replace('&nbsp;', ' ').replace('&amp;', '&').replace('&#039;', "'").replace('&quot;', '"')
+    return re.sub(r'\s+', ' ', tekst).strip()
 
 
 def parse_standen_uit_tabellen(html):
-    result = {}
-    parts = re.split(r'<h3[^>]*>(.*?)</h3>', html, flags=re.DOTALL)
-    i = 1
-    while i < len(parts):
-        fase_naam = re.sub(r'<[^>]+>', '', parts[i]).strip()
-        rest = parts[i + 1] if i + 1 < len(parts) else ''
-        table_match = re.search(r'<table[^>]*>(.*?)</table>', rest, re.DOTALL)
-        if not table_match:
-            i += 2
+    fase_rijen = []
+    for match in ROW_RE.finditer(html):
+        href, inner_html = match.group(1), match.group(2)
+        slug = href.strip("/").split("/")[-1]
+        tekst = _tekst_zonder_tags(inner_html)
+        if not tekst:
             continue
-        table_html = table_match.group(1)
-        rows = re.findall(r'<tr[^>]*>(.*?)</tr>', table_html, re.DOTALL)
-        fase_rijen = []
-        for row in rows:
-            tds_raw = re.findall(r'<td[^>]*>(.*?)</td>', row, re.DOTALL)
-            tds = [re.sub(r'<[^>]+>', '', td).strip() for td in tds_raw]
-            tds = [re.sub(r'\s+', ' ', td).strip() for td in tds]
-            if len(tds) < 5:
-                continue
-            positie = tds[0] if tds[0] else '-'
-            team = ''
-            team_idx = -1
-            for j in range(1, len(tds)):
-                if re.search(r'[A-Za-z]', tds[j]):
-                    team = clean(tds[j])
-                    team_idx = j
-                    break
-            if not team or team_idx == -1:
-                continue
-            cijfers = [c for c in tds[team_idx + 1:] if c != '']
-            if len(cijfers) < 3:
-                continue
-            fase_rijen.append({
-                "positie": positie,
-                "team":    team,
-                "logo":    logo(team),
-                "w":       cijfers[0] if len(cijfers) > 0 else '-',
-                "l":       cijfers[1] if len(cijfers) > 1 else '-',
-                "t":       cijfers[2] if len(cijfers) > 2 else '-',
-                "pct":     cijfers[3] if len(cijfers) > 3 else '-',
-                "gb":      cijfers[4] if len(cijfers) > 4 else '-',
-            })
-        if fase_rijen:
-            result[fase_naam] = fase_rijen
-        i += 2
-    return result
+
+        pos_match = re.match(r'^(\d+)\s*(.*)$', tekst)
+        if not pos_match:
+            continue
+        positie, rest = pos_match.group(1), pos_match.group(2)
+
+        gb_match = GB_OF_LEADER_RE.search(rest)
+        if not gb_match:
+            continue
+        naam_blob = rest[:gb_match.start()].strip()
+        staart = rest[gb_match.end():].strip()
+
+        staart_match = ROW_TAIL_RE.search(staart)
+        if not staart_match:
+            continue
+        w, l, pct, streak = staart_match.groups()
+
+        team_naam = SLUG_TEAM_NAMES.get(slug)
+        if not team_naam:
+            # Teamnaam staat dubbel in de tekst (responsive layout) —
+            # probeer de herhaling eruit te halen, anders de ruwe blob.
+            genormaliseerd = ' '.join(naam_blob.split())
+            n = len(genormaliseerd)
+            if n % 2 == 0 and genormaliseerd[:n // 2] == genormaliseerd[n // 2:]:
+                team_naam = genormaliseerd[:n // 2]
+            elif n % 2 == 1 and ' ' in genormaliseerd and genormaliseerd[:n // 2] == genormaliseerd[n // 2 + 1:]:
+                team_naam = genormaliseerd[:n // 2]
+            else:
+                team_naam = genormaliseerd or slug.title()
+
+        gb_marker = gb_match.group(1)
+        gb_waarde = "0" if gb_marker.lower() == "leader" else re.sub(r'[^0-9.]', '', gb_marker)
+
+        fase_rijen.append({
+            "positie": positie,
+            "team":    team_naam,
+            "logo":    logo(team_naam),
+            "w":       w,
+            "l":       l,
+            "t":       "-",
+            "pct":     pct,
+            "gb":      gb_waarde,
+            "streak":  streak or "-",
+        })
+    return {"Standen": fase_rijen} if fase_rijen else {}
 
 
 def parse_standings(html):
-    data = extract_inertia_data(html)
+    data = extract_next_data(html)
     if data is not None:
-        standen = parse_standen_uit_inertia(data)
+        standen = parse_standen_uit_next_data(data)
         if standen:
             return standen
-        print("  ⚠ Inertia-data gevonden maar geen standen eruit gehaald — probeer tabel-regex als fallback.", flush=True)
+        print("  ⚠ __NEXT_DATA__ gevonden maar geen bruikbare standen — probeer HTML-fallback.", flush=True)
     else:
-        print("  ⚠ Geen Inertia data-page gevonden — probeer tabel-regex.", flush=True)
+        print("  ⚠ Geen __NEXT_DATA__ gevonden — probeer HTML-fallback.", flush=True)
     return parse_standen_uit_tabellen(html)
 
 
@@ -364,16 +382,11 @@ def main():
     print(f"Ontvangen: {len(html)} bytes")
     standen = parse_standings(html)
     print(f"Gevonden fases: {list(standen.keys())}")
-
-    if not standen:
-        # Geen enkele fase gevonden = zeer waarschijnlijk een mislukte fetch
-        # (blokkade, layout-wijziging, etc.), geen "0 wedstrijden gespeeld".
-        # Bestaande standen.json NIET overschrijven met lege data, en de run
-        # laten falen zodat dit zichtbaar is in Actions i.p.v. stil verlies
-        # van data op de site.
+    for fase, rijen in standen.items():
+        print(f"  {fase}: {len(rijen)} teams")
+    if not standen or not any(standen.values()):
         print("❌ Geen standen gevonden — bestaande standen.json wordt NIET overschreven.", file=sys.stderr)
         sys.exit(1)
-
     output = {
         "bijgewerkt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "bron":       URL,
