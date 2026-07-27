@@ -1,5 +1,85 @@
 {
-  "bijgewerkt": "2026-07-17T13:54:52Z",
-  "bron": "https://stats.knbsbstats.nl/en/events/2026-lucky-day-hoofdklasse/standings",
-  "standen": {}
+  "bijgewerkt": "2026-07-27T08:59:45Z",
+  "bron": "https://honkbalhoofdklasse.com/stand",
+  "standen": {
+    "Standen": [
+      {
+        "positie": "1",
+        "team": "Curaçao Neptunus",
+        "logo": "https://worldbaseballnews.org/wp-content/uploads/2025/11/neptunus.png",
+        "w": "31",
+        "l": "2",
+        "t": "-",
+        "pct": ".939",
+        "gb": "0",
+        "streak": "W"
+      },
+      {
+        "positie": "2",
+        "team": "Amsterdam Pirates",
+        "logo": "https://worldbaseballnews.org/wp-content/uploads/2025/11/amsterdam-pirates.png",
+        "w": "29",
+        "l": "4",
+        "t": "-",
+        "pct": ".879",
+        "gb": "2",
+        "streak": "W"
+      },
+      {
+        "positie": "3",
+        "team": "Kinheim",
+        "logo": "https://worldbaseballnews.org/wp-content/uploads/2025/11/kinheim.png",
+        "w": "17",
+        "l": "17",
+        "t": "-",
+        "pct": ".486",
+        "gb": "14.5",
+        "streak": "W"
+      },
+      {
+        "positie": "4",
+        "team": "Oosterhout Twins",
+        "logo": "https://worldbaseballnews.org/wp-content/uploads/2025/11/twins-1.png",
+        "w": "16",
+        "l": "17",
+        "t": "-",
+        "pct": ".485",
+        "gb": "15",
+        "streak": "W"
+      },
+      {
+        "positie": "5",
+        "team": "HCAW",
+        "logo": "https://worldbaseballnews.org/wp-content/uploads/2025/11/hcaw.png",
+        "w": "12",
+        "l": "21",
+        "t": "-",
+        "pct": ".364",
+        "gb": "19",
+        "streak": "L"
+      },
+      {
+        "positie": "6",
+        "team": "Hoofddorp Pioniers",
+        "logo": "https://worldbaseballnews.org/wp-content/uploads/2025/11/pioniers.png",
+        "w": "5",
+        "l": "26",
+        "t": "-",
+        "pct": ".156",
+        "gb": "25",
+        "streak": "L"
+      },
+      {
+        "positie": "7",
+        "team": "UVV",
+        "logo": "https://worldbaseballnews.org/wp-content/uploads/2025/11/uvv.png",
+        "w": "5",
+        "l": "28",
+        "t": "-",
+        "pct": ".152",
+        "gb": "26",
+        "streak": "L"
+      }
+    ]
+  }
 }
