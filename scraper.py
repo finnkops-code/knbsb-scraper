@@ -385,16 +385,15 @@ def print_diagnose(html):
     print(f"  [diagnose] lengte HTML: {len(html)} bytes", flush=True)
     print(f"  [diagnose] bevat '__NEXT_DATA__': {'__NEXT_DATA__' in html}", flush=True)
     print(f"  [diagnose] bevat '__next_f.push' (RSC-streaming): {'__next_f.push' in html}", flush=True)
-    print(f"  [diagnose] aantal keer '/rosters/' in HTML: {html.count('/rosters/')}", flush=True)
-    idx = html.find("Neptunus")
-    if idx == -1:
-        idx = html.find("neptunus")
-    if idx != -1:
-        fragment = html[max(0, idx - 400):idx + 400]
-        print("  [diagnose] fragment rond 'Neptunus':", flush=True)
+    aantal_rosters = html.count('/rosters/')
+    print(f"  [diagnose] aantal keer '/rosters/' in HTML: {aantal_rosters}", flush=True)
+    if aantal_rosters:
+        idx = html.find("/rosters/")
+        fragment = html[max(0, idx - 300):idx + 1500]
+        print("  [diagnose] fragment rond eerste '/rosters/'-link:", flush=True)
         print(fragment, flush=True)
     else:
-        print("  [diagnose] 'Neptunus' komt niet voor in de HTML — data is vermoedelijk (nog) niet gerenderd.", flush=True)
+        print("  [diagnose] geen '/rosters/'-links aanwezig — data is vermoedelijk (nog) niet gerenderd.", flush=True)
 
 
 def main():
