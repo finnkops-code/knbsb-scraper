@@ -376,15 +376,50 @@ def parse_standings(html):
     return parse_standen_uit_tabellen(html)
 
 
+def print_diagnose(html):
+    """
+    Print wat context zodat een mislukte run in de Actions-log te
+    analyseren is, zonder dat we de volledige (grote) pagina hoeven te
+    dumpen. Helpt om de parser gericht bij te stellen i.p.v. te gokken.
+    """
+    print(f"  [diagnose] lengte HTML: {len(html)} bytes", flush=True)
+    print(f"  [diagnose] bevat '__NEXT_DATA__': {'__NEXT_DATA__' in html}", flush=True)
+    print(f"  [diagnose] bevat '__next_f.push' (RSC-streaming): {'__next_f.push' in html}", flush=True)
+    print(f"  [diagnose] aantal keer '/rosters/' in HTML: {html.count('/rosters/')}", flush=True)
+    idx = html.find("Neptunus")
+    if idx == -1:
+        idx = html.find("neptunus")
+    if idx != -1:
+        fragment = html[max(0, idx - 400):idx + 400]
+        print("  [diagnose] fragment rond 'Neptunus':", flush=True)
+        print(fragment, flush=True)
+    else:
+        print("  [diagnose] 'Neptunus' komt niet voor in de HTML — data is vermoedelijk (nog) niet gerenderd.", flush=True)
+
+
 def main():
     print(f"Ophalen van {URL}...")
     html = fetch_html()
     print(f"Ontvangen: {len(html)} bytes")
     standen = parse_standings(html)
+
+    if not standen or not any(standen.values()):
+        # De pagina kan (deels) client-side gerenderd zijn, waardoor een
+        # kale requests.get() een lege/onvolledige DOM oplevert. Val in dat
+        # geval terug op Playwright, dat JavaScript wél uitvoert.
+        print("  ⚠ Geen standen in de requests-HTML — probeer Playwright (met JS-rendering)…", flush=True)
+        try:
+            html = haal_via_playwright()
+            print(f"  Ontvangen via Playwright: {len(html)} bytes", flush=True)
+            standen = parse_standings(html)
+        except Exception as e:  # noqa: BLE001
+            print(f"  ✗ Playwright-fallback mislukte: {e}", file=sys.stderr)
+
     print(f"Gevonden fases: {list(standen.keys())}")
     for fase, rijen in standen.items():
         print(f"  {fase}: {len(rijen)} teams")
     if not standen or not any(standen.values()):
+        print_diagnose(html)
         print("❌ Geen standen gevonden — bestaande standen.json wordt NIET overschreven.", file=sys.stderr)
         sys.exit(1)
     output = {
